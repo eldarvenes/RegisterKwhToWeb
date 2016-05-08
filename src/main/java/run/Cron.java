@@ -19,7 +19,7 @@ public class Cron {
 
     public static void main(String[] args) {
 
-        logger.info("Entering application.");
+        logger.info("Entering application");
 
 
         Scheduler scheduler = null;
