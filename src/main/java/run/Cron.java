@@ -33,7 +33,7 @@ public class Cron {
             Trigger trigger_saveReportToWeb = newTrigger()
                     .withIdentity("trigger_saveReportToWeb")
                     .startNow()
-                    .withSchedule(cronSchedule("* 1 0 * * ?"))
+                    .withSchedule(cronSchedule("0 1 0 * * ?"))
                     .build();
 
             scheduler.start();
