@@ -34,8 +34,11 @@ public class RegisterKwhToWeb implements Job {
     final static Logger logger = LoggerFactory.getLogger(RegisterKwhToWeb.class);
 
     YouLessService youLessService = new YouLessService();
+    SendNmaMessage sendNmaMessage = new SendNmaMessage();
     String p_name;
     String p_pass;
+
+    String maalerstand = "";
 
     String loginResult = "";
     private final String USER_AGENT = "Mozilla/5.0";
@@ -48,6 +51,11 @@ public class RegisterKwhToWeb implements Job {
 
     public RegisterKwhToWeb() {
         loadProperties();
+    }
+
+    private void prepareDataFromYouless(){
+        maalerstand = youLessService.getTotalKwhAsString();
+        maalerstand = maalerstand.replace(",", "");
     }
 
     private String getLoginPage() throws IOException {
@@ -112,9 +120,6 @@ public class RegisterKwhToWeb implements Job {
 
         HttpPost post = new HttpPost(urlAvlesning);
 
-        String maalerstand = youLessService.getTotalKwhAsString();
-        maalerstand = maalerstand.replace(",", "");
-
         List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
         urlParameters.add(new BasicNameValuePair("p_session_id", getSessionId(loginResult)));
         urlParameters.add(new BasicNameValuePair("p_avlesDato", dato));
@@ -159,6 +164,7 @@ public class RegisterKwhToWeb implements Job {
             result.append(line);
         }
 
+        sendNmaMessage.sendMessage("Maaleravlesing", "Registrering av straumforbruk til Sognekraft, OK, total maalerstand var: " + maalerstand);
     }
 
     public String getSessionId(String textToSearchIn) {
@@ -172,12 +178,15 @@ public class RegisterKwhToWeb implements Job {
 
     public void register() {
         try {
-            System.out.println("Starter registrering til web...");
-            getLoginPage();
-            login();
-            sendAvlesing();
-            godkjennAvlesing();
-            System.out.println("Registrering til web ferdig");
+            if (youLessService.isConnectionOk()) {
+                prepareDataFromYouless();
+                getLoginPage();
+                login();
+                sendAvlesing();
+                godkjennAvlesing();
+            }else{
+                logger.error("Could not register to web because YouLess service is not connected");
+            }
         } catch (IOException e) {
             e.printStackTrace();
         } catch (Exception e) {
@@ -186,7 +195,6 @@ public class RegisterKwhToWeb implements Job {
     }
 
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
-        System.out.println("Test-quartz");
         logger.info("Register kwh to web");
         register();
         logger.info("Registration success");

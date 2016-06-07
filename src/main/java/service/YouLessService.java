@@ -7,8 +7,12 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Properties;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class YouLessService {
+
+    final static Logger logger = LoggerFactory.getLogger(RegisterKwhToWeb.class);
 
     String youLessURL;
 
@@ -17,6 +21,15 @@ public class YouLessService {
     }
 
     public double getTotalKwhFromYouLess() {
+        JSONObject json = readJSONFromYouLess();
+        String kwh = json.getString("cnt");
+        kwh = kwh.replace(',', '.');
+        double valuekwh = Double.valueOf(kwh);
+        logger.debug("Read total kwh from YouLess: " + valuekwh);
+        return valuekwh;
+    }
+
+    private JSONObject readJSONFromYouLess() {
         URL youless = null;
         try {
             youless = new URL(youLessURL);
@@ -38,15 +51,7 @@ public class YouLessService {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        JSONObject json = new JSONObject(inputLine);
-
-        String kwh = json.getString("cnt");
-
-        kwh = kwh.replace(',', '.');
-        double valuekwh = Double.valueOf(kwh);
-
-        return valuekwh;
-
+        return new JSONObject(inputLine);
     }
 
     public String getTotalKwhAsString(){
@@ -60,6 +65,28 @@ public class YouLessService {
         String str = nf.format(kwh);
 
         return str.replace('\u00A0',' ').replaceAll("\\s","");
+    }
+
+    public boolean isConnectionOk(){
+        logger.debug("Check if connection is ok to YouLess...");
+        Boolean connected = false;
+        int retries = 0;
+        int signalStrength;
+
+        while((connected == false) && (retries < 10)){
+            logger.debug("Retries: " + retries);
+            JSONObject json = readJSONFromYouLess();
+            signalStrength = json.getInt("lvl");
+            retries++;
+            connected = signalStrength > 80;
+            try {
+                Thread.sleep(300);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        logger.debug("Connected: " + connected);
+        return(connected);
     }
 
     private void loadProperties() {
